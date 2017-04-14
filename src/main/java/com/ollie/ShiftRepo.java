@@ -1,7 +1,9 @@
 package com.ollie;
 
-import org.springframework.data.repository.CrudRepository;
 
-public interface ShiftRepo extends CrudRepository<Shift, Long> {
+import org.springframework.data.repository.PagingAndSortingRepository;
+
+public interface ShiftRepo extends PagingAndSortingRepository<Shift, Long> {
 
 }
+
