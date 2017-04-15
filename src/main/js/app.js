@@ -10,7 +10,7 @@ class App extends React.Component {
 
 	constructor(props) {
 		super(props);
-		this.state = {shifts: [], attributes: [], pageSize: 2, links: {}};
+		this.state = {shifts: [], attributes: [], page: 1, pageSize: 2, links: {}};
 		this.updatePageSize = this.updatePageSize.bind(this);
 		this.onCreate = this.onCreate.bind(this);
 		this.onUpdate = this.onUpdate.bind(this);
@@ -35,6 +35,7 @@ class App extends React.Component {
 				return shiftCollection;
 			});
 		}).then(shiftCollection => {
+			this.page = shiftCollection.entity.page;
 			return shiftCollection.entity._embedded.shifts.map(shift =>
 					client({
 						method: 'GET',
@@ -45,6 +46,8 @@ class App extends React.Component {
 			return when.all(shiftPromises);
 		}).done(shifts => {
 			this.setState({
+				
+				page: this.page,
 				shifts: shifts,
 				attributes: Object.keys(this.schema.properties),
 				pageSize: pageSize,
@@ -71,14 +74,13 @@ class App extends React.Component {
 			entity: updatedShift,
 			headers: {
 				'Content-Type': 'application/json',
-				'If-Match': shift.headers.Etag
+				'If-Match': employee.headers.Etag
 			}
 		}).done(response => {
-			this.loadFromServer(this.state.pageSize);
+			/* Let the websocket handler update the state */
 		}, response => {
 			if (response.status.code === 412) {
-				alert('DENIED: Unable to update ' +
-					shift.entity._links.self.href + '. Your copy is stale.');
+				alert('DENIED: Unable to update ' + shift.entity._links.self.href + '. Your copy is stale.');
 			}
 		});
 	}
@@ -177,7 +179,8 @@ class App extends React.Component {
 		return (
 			<div>
 				<CreateDialog attributes={this.state.attributes} onCreate={this.onCreate}/>
-				<ShiftList shifts={this.state.shifts}
+				<ShiftList page={this.state.page}
+							  shifts={this.state.shifts}
 							  links={this.state.links}
 							  pageSize={this.state.pageSize}
 							  attributes={this.state.attributes}
@@ -241,7 +244,7 @@ class CreateDialog extends React.Component {
 		)
 	}
 
-};
+}
 
 class UpdateDialog extends React.Component {
 
@@ -272,25 +275,26 @@ class UpdateDialog extends React.Component {
 		var dialogId = "updateShift-" + this.props.shift.entity._links.self.href;
 
 		return (
-			<div key={this.props.shift.entity._links.self.href}>
-				<a href={"#" + dialogId}>Update</a>
-				<div id={dialogId} className="modalDialog">
-					<div>
-						<a href="#" title="Close" className="close">X</a>
+				<div>
+					<a href={"#" + dialogId}>Update</a>
 
-						<h2>Update a shift</h2>
+					<div id={dialogId} className="modalDialog">
+						<div>
+							<a href="#" title="Close" className="close">X</a>
 
-						<form>
-							{inputs}
-							<button onClick={this.handleSubmit}>Update</button>
-						</form>
+							<h2>Update an employee</h2>
+
+							<form>
+								{inputs}
+								<button onClick={this.handleSubmit}>Update</button>
+							</form>
+						</div>
 					</div>
 				</div>
-			</div>
-		)
-	}
+			)
+		}
 
-};
+	}
 
 class ShiftList extends React.Component{
 	
@@ -338,8 +342,9 @@ class ShiftList extends React.Component{
 	
 	
 	render() {
-	var pageInfo = this.props.page.hasOwnProperty("number") ?
-			<h3>Shifts - Page {this.props.page.number + 1} of {this.props.page.totalPages}</h3> : null;
+		var pageInfo = this.props.page.hasOwnProperty("number") ?
+				<h3>Shifts - Page {this.props.page.number + 1} of {this.props.page.totalPages}</h3> : null;
+
 
 		var shifts = this.props.shifts.map(shift =>
 			<Shift key={shift.entity._links.self.href}
@@ -365,6 +370,7 @@ class ShiftList extends React.Component{
 		
 		return (
 				<div>
+					{pageInfo}
 					<input ref="pageSize" defaultValue={this.props.pageSize} onInput={this.handleInput}/>
 					<table>
 						<tbody>
@@ -383,7 +389,7 @@ class ShiftList extends React.Component{
 				</div>
 			)
 		}
-}
+	}
 
 class Shift extends React.Component{
 
@@ -402,16 +408,16 @@ class Shift extends React.Component{
 				<td>{this.props.shift.entity.date}</td>
 				<td>{this.props.shift.entity.shiftType}</td>
 				<td>
-				<UpdateDialog shift={this.props.shift}
-							  attributes={this.props.attributes}
-							  onUpdate={this.props.onUpdate}/>
+					<UpdateDialog shift={this.props.shift}
+								  attributes={this.props.attributes}
+								  onUpdate={this.props.onUpdate}/>
 				</td>
 				<td>
 					<button onClick={this.handleDelete}>Delete</button>
 				</td>
 			</tr>
-	)
-}
+		)
+	}
 }
 
 ReactDOM.render(
