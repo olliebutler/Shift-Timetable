@@ -3,8 +3,8 @@ const ReactDOM = require('react-dom')
 const client = require('./client');
 const follow = require('./follow');
 const when = require('when');
-
-var root = '/api';
+const stompClient = require('./websocket-listener')
+const root = '/api';
 
 class App extends React.Component {
 
@@ -16,6 +16,8 @@ class App extends React.Component {
 		this.onUpdate = this.onUpdate.bind(this);
 		this.onDelete = this.onDelete.bind(this);
 		this.onNavigate = this.onNavigate.bind(this);
+		this.refreshCurrentPage = this.refreshCurrentPage.bind(this);
+		this.refreshAndGoToLastPage = this.refreshAndGoToLastPage.bind(this);
 	}
 	
 	
@@ -52,23 +54,14 @@ class App extends React.Component {
 	}
 	
 	onCreate(newShift) {
-		var self = this;
-		follow(client, root, ['shifts']).then(response => {
-			return client({
+		follow(client, root, ['shifts']).done(response => {
+			client({
 				method: 'POST',
 				path: response.entity._links.self.href,
 				entity: newShift,
 				headers: {'Content-Type': 'application/json'}
 			})
-		}).then(response => {
-			return follow(client, root, [{rel: 'shifts', params: {'size': self.state.pageSize}}]);
-		}).done(response => {
-			if (typeof response.entity._links.last != "undefined") {
-				this.onNavigate(response.entity._links.last.href);
-			} else {
-				this.onNavigate(response.entity._links.self.href);
-			}
-		});
+		})
 	}
 	
 	onUpdate(shift, updatedShift) {
@@ -91,9 +84,7 @@ class App extends React.Component {
 	}
 	
 	onDelete(shift) {
-		client({method: 'DELETE', path: shift.entity._links.self.href}).done(response => {
-			this.loadFromServer(this.state.pageSize);
-		});
+		client({method: 'DELETE', path: shift.entity._links.self.href});
 	}
 	
 	onNavigate(navUri) {
@@ -102,6 +93,7 @@ class App extends React.Component {
 			path: navUri
 		}).then(shiftCollection => {
 			this.links = shiftCollection.entity._links;
+			this.page = shiftCollection.entity.page;
 
 			return shiftCollection.entity._embedded.shifts.map(shift =>
 					client({
@@ -113,6 +105,8 @@ class App extends React.Component {
 			return when.all(shiftPromises);
 		}).done(shifts => {
 			this.setState({
+			
+				page: this.page,
 				shifts: shifts,
 				attributes: Object.keys(this.schema.properties),
 				pageSize: this.state.pageSize,
@@ -126,9 +120,57 @@ class App extends React.Component {
 			this.loadFromServer(pageSize);
 		}
 	}
+	
+	refreshAndGoToLastPage(message) {
+		follow(client, root, [{
+			rel: 'employees',
+			params: {size: this.state.pageSize}
+		}]).done(response => {
+			if (response.entity._links.last !== undefined) {
+				this.onNavigate(response.entity._links.last.href);
+			} else {
+				this.onNavigate(response.entity._links.self.href);
+			}
+		})
+	}
+
+	refreshCurrentPage(message) {
+		follow(client, root, [{
+			rel: 'shifts',
+			params: {
+				size: this.state.pageSize,
+				page: this.state.page.number
+			}
+		}]).then(shiftCollection => {
+			this.links = shiftCollection.entity._links;
+			this.page = shiftCollection.entity.page;
+
+			return shiftCollection.entity._embedded.shifts.map(shift => {
+				return client({
+					method: 'GET',
+					path: shift._links.self.href
+				})
+			});
+		}).then(shiftPromises => {
+			return when.all(shiftPromises);
+		}).then(shifts => {
+			this.setState({
+				page: this.page,
+				shifts: shifts,
+				attributes: Object.keys(this.schema.properties),
+				pageSize: this.state.pageSize,
+				links: this.links
+			});
+		});
+	}
 
 	componentDidMount() {
 		this.loadFromServer(this.state.pageSize);
+		stompClient.register([
+			{route: '/topic/newShift', callback: this.refreshAndGoToLastPage},
+			{route: '/topic/updateShift', callback: this.refreshCurrentPage},
+			{route: '/topic/deleteShift', callback: this.refreshCurrentPage}
+		]);
 	}
 
 	render() {
@@ -294,14 +336,18 @@ class ShiftList extends React.Component{
 		this.props.onNavigate(this.props.links.last.href);
 	}
 	
+	
 	render() {
+	var pageInfo = this.props.page.hasOwnProperty("number") ?
+			<h3>Shifts - Page {this.props.page.number + 1} of {this.props.page.totalPages}</h3> : null;
+
 		var shifts = this.props.shifts.map(shift =>
-		<Shift key={shift.entity._links.self.href}
-				  shift={shift}
-				  attributes={this.props.attributes}
-				  onUpdate={this.props.onUpdate}
-				  onDelete={this.props.onDelete}/>
-);
+			<Shift key={shift.entity._links.self.href}
+					  shift={shift}
+					  attributes={this.props.attributes}
+					  onUpdate={this.props.onUpdate}
+					  onDelete={this.props.onDelete}/>
+		);
 		
 		var navLinks = [];
 		if ("first" in this.props.links) {

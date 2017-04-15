@@ -1,4 +1,4 @@
-package com.ollie;
+package com.ollie.Timetable;
 
 
 import org.springframework.data.repository.PagingAndSortingRepository;

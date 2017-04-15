@@ -1,4 +1,4 @@
-package com.ollie;
+package com.ollie.Timetable;
 
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.stereotype.Component;
@@ -14,7 +14,7 @@ public class WebsocketConfig extends AbstractWebSocketMessageBrokerConfigurer {
 
 	@Override
 	public void registerStompEndpoints(StompEndpointRegistry registry) {
-		registry.addEndpoint("/payroll").withSockJS();
+		registry.addEndpoint("/Timetable").withSockJS();
 	}
 
 	@Override

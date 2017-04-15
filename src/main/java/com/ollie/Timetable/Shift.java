@@ -1,4 +1,4 @@
-package com.ollie;
+package com.ollie.Timetable;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
