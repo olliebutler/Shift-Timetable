@@ -58,6 +58,7 @@
 	var ReactDOM = __webpack_require__(36);
 	var client = __webpack_require__(182);
 	var follow = __webpack_require__(230);
+	var when = __webpack_require__(188);
 	
 	var root = '/api';
 	
@@ -72,6 +73,7 @@
 			_this.state = { shifts: [], attributes: [], pageSize: 2, links: {} };
 			_this.updatePageSize = _this.updatePageSize.bind(_this);
 			_this.onCreate = _this.onCreate.bind(_this);
+			_this.onUpdate = _this.onUpdate.bind(_this);
 			_this.onDelete = _this.onDelete.bind(_this);
 			_this.onNavigate = _this.onNavigate.bind(_this);
 			return _this;
@@ -89,14 +91,25 @@
 						headers: { 'Accept': 'application/schema+json' }
 					}).then(function (schema) {
 						_this2.schema = schema.entity;
+						_this2.links = shiftCollection.entity._links;
 						return shiftCollection;
 					});
-				}).done(function (shiftCollection) {
+				}).then(function (shiftCollection) {
+					return shiftCollection.entity._embedded.shifts.map(function (shift) {
+						return client({
+							method: 'GET',
+							path: shift._links.self.href
+						});
+					});
+				}).then(function (shiftPromises) {
+					return when.all(shiftPromises);
+				}).done(function (shifts) {
 					_this2.setState({
-						shifts: shiftCollection.entity._embedded.shifts,
+						shifts: shifts,
 						attributes: Object.keys(_this2.schema.properties),
 						pageSize: pageSize,
-						links: shiftCollection.entity._links });
+						links: _this2.links
+					});
 				});
 			}
 		}, {
@@ -104,15 +117,16 @@
 			value: function onCreate(newShift) {
 				var _this3 = this;
 	
-				follow(client, root, ['shifts']).then(function (shiftCollection) {
+				var self = this;
+				follow(client, root, ['shifts']).then(function (response) {
 					return client({
 						method: 'POST',
-						path: shiftCollection.entity._links.self.href,
+						path: response.entity._links.self.href,
 						entity: newShift,
 						headers: { 'Content-Type': 'application/json' }
 					});
 				}).then(function (response) {
-					return follow(client, root, [{ rel: 'shifts', params: { 'size': _this3.state.pageSize } }]);
+					return follow(client, root, [{ rel: 'shifts', params: { 'size': self.state.pageSize } }]);
 				}).done(function (response) {
 					if (typeof response.entity._links.last != "undefined") {
 						_this3.onNavigate(response.entity._links.last.href);
@@ -122,25 +136,60 @@
 				});
 			}
 		}, {
-			key: 'onDelete',
-			value: function onDelete(shift) {
+			key: 'onUpdate',
+			value: function onUpdate(shift, updatedShift) {
 				var _this4 = this;
 	
-				client({ method: 'DELETE', path: shift._links.self.href }).done(function (response) {
+				client({
+					method: 'PUT',
+					path: shift.entity._links.self.href,
+					entity: updatedShift,
+					headers: {
+						'Content-Type': 'application/json',
+						'If-Match': shift.headers.Etag
+					}
+				}).done(function (response) {
 					_this4.loadFromServer(_this4.state.pageSize);
+				}, function (response) {
+					if (response.status.code === 412) {
+						alert('DENIED: Unable to update ' + shift.entity._links.self.href + '. Your copy is stale.');
+					}
+				});
+			}
+		}, {
+			key: 'onDelete',
+			value: function onDelete(shift) {
+				var _this5 = this;
+	
+				client({ method: 'DELETE', path: shift.entity._links.self.href }).done(function (response) {
+					_this5.loadFromServer(_this5.state.pageSize);
 				});
 			}
 		}, {
 			key: 'onNavigate',
 			value: function onNavigate(navUri) {
-				var _this5 = this;
+				var _this6 = this;
 	
-				client({ method: 'GET', path: navUri }).done(function (shiftCollection) {
-					_this5.setState({
-						shifts: shiftCollection.entity._embedded.shifts,
-						attributes: _this5.state.attributes,
-						pageSize: _this5.state.pageSize,
-						links: shiftCollection.entity._links
+				client({
+					method: 'GET',
+					path: navUri
+				}).then(function (shiftCollection) {
+					_this6.links = shiftCollection.entity._links;
+	
+					return shiftCollection.entity._embedded.shifts.map(function (shift) {
+						return client({
+							method: 'GET',
+							path: shift._links.self.href
+						});
+					});
+				}).then(function (shiftPromises) {
+					return when.all(shiftPromises);
+				}).done(function (shifts) {
+					_this6.setState({
+						shifts: shifts,
+						attributes: Object.keys(_this6.schema.properties),
+						pageSize: _this6.state.pageSize,
+						links: _this6.links
 					});
 				});
 			}
@@ -166,7 +215,9 @@
 					React.createElement(ShiftList, { shifts: this.state.shifts,
 						links: this.state.links,
 						pageSize: this.state.pageSize,
+						attributes: this.state.attributes,
 						onNavigate: this.onNavigate,
+						onUpdate: this.onUpdate,
 						onDelete: this.onDelete,
 						updatePageSize: this.updatePageSize })
 				);
@@ -182,27 +233,27 @@
 		function CreateDialog(props) {
 			_classCallCheck(this, CreateDialog);
 	
-			var _this6 = _possibleConstructorReturn(this, (CreateDialog.__proto__ || Object.getPrototypeOf(CreateDialog)).call(this, props));
+			var _this7 = _possibleConstructorReturn(this, (CreateDialog.__proto__ || Object.getPrototypeOf(CreateDialog)).call(this, props));
 	
-			_this6.handleSubmit = _this6.handleSubmit.bind(_this6);
-			return _this6;
+			_this7.handleSubmit = _this7.handleSubmit.bind(_this7);
+			return _this7;
 		}
 	
 		_createClass(CreateDialog, [{
 			key: 'handleSubmit',
 			value: function handleSubmit(e) {
-				var _this7 = this;
+				var _this8 = this;
 	
 				e.preventDefault();
 				var newShift = {};
 				this.props.attributes.forEach(function (attribute) {
-					newShift[attribute] = ReactDOM.findDOMNode(_this7.refs[attribute]).value.trim();
+					newShift[attribute] = ReactDOM.findDOMNode(_this8.refs[attribute]).value.trim();
 				});
 				this.props.onCreate(newShift);
 	
 				// clear out the dialog's inputs
 				this.props.attributes.forEach(function (attribute) {
-					ReactDOM.findDOMNode(_this7.refs[attribute]).value = '';
+					ReactDOM.findDOMNode(_this8.refs[attribute]).value = '';
 				});
 	
 				// Navigate away from the dialog to hide it.
@@ -262,20 +313,109 @@
 		return CreateDialog;
 	}(React.Component);
 	
-	var ShiftList = function (_React$Component3) {
-		_inherits(ShiftList, _React$Component3);
+	;
+	
+	var UpdateDialog = function (_React$Component3) {
+		_inherits(UpdateDialog, _React$Component3);
+	
+		function UpdateDialog(props) {
+			_classCallCheck(this, UpdateDialog);
+	
+			var _this9 = _possibleConstructorReturn(this, (UpdateDialog.__proto__ || Object.getPrototypeOf(UpdateDialog)).call(this, props));
+	
+			_this9.handleSubmit = _this9.handleSubmit.bind(_this9);
+			return _this9;
+		}
+	
+		_createClass(UpdateDialog, [{
+			key: 'handleSubmit',
+			value: function handleSubmit(e) {
+				var _this10 = this;
+	
+				e.preventDefault();
+				var updatedShift = {};
+				this.props.attributes.forEach(function (attribute) {
+					updatedShift[attribute] = ReactDOM.findDOMNode(_this10.refs[attribute]).value.trim();
+				});
+				this.props.onUpdate(this.props.shift, updatedShift);
+				window.location = "#";
+			}
+		}, {
+			key: 'render',
+			value: function render() {
+				var _this11 = this;
+	
+				var inputs = this.props.attributes.map(function (attribute) {
+					return React.createElement(
+						'p',
+						{ key: _this11.props.shift.entity[attribute] },
+						React.createElement('input', { type: 'text', placeholder: attribute,
+							defaultValue: _this11.props.shift.entity[attribute],
+							ref: attribute, className: 'field' })
+					);
+				});
+	
+				var dialogId = "updateShift-" + this.props.shift.entity._links.self.href;
+	
+				return React.createElement(
+					'div',
+					{ key: this.props.shift.entity._links.self.href },
+					React.createElement(
+						'a',
+						{ href: "#" + dialogId },
+						'Update'
+					),
+					React.createElement(
+						'div',
+						{ id: dialogId, className: 'modalDialog' },
+						React.createElement(
+							'div',
+							null,
+							React.createElement(
+								'a',
+								{ href: '#', title: 'Close', className: 'close' },
+								'X'
+							),
+							React.createElement(
+								'h2',
+								null,
+								'Update a shift'
+							),
+							React.createElement(
+								'form',
+								null,
+								inputs,
+								React.createElement(
+									'button',
+									{ onClick: this.handleSubmit },
+									'Update'
+								)
+							)
+						)
+					)
+				);
+			}
+		}]);
+	
+		return UpdateDialog;
+	}(React.Component);
+	
+	;
+	
+	var ShiftList = function (_React$Component4) {
+		_inherits(ShiftList, _React$Component4);
 	
 		function ShiftList(props) {
 			_classCallCheck(this, ShiftList);
 	
-			var _this8 = _possibleConstructorReturn(this, (ShiftList.__proto__ || Object.getPrototypeOf(ShiftList)).call(this, props));
+			var _this12 = _possibleConstructorReturn(this, (ShiftList.__proto__ || Object.getPrototypeOf(ShiftList)).call(this, props));
 	
-			_this8.handleNavFirst = _this8.handleNavFirst.bind(_this8);
-			_this8.handleNavPrev = _this8.handleNavPrev.bind(_this8);
-			_this8.handleNavNext = _this8.handleNavNext.bind(_this8);
-			_this8.handleNavLast = _this8.handleNavLast.bind(_this8);
-			_this8.handleInput = _this8.handleInput.bind(_this8);
-			return _this8;
+			_this12.handleNavFirst = _this12.handleNavFirst.bind(_this12);
+			_this12.handleNavPrev = _this12.handleNavPrev.bind(_this12);
+			_this12.handleNavNext = _this12.handleNavNext.bind(_this12);
+			_this12.handleNavLast = _this12.handleNavLast.bind(_this12);
+			_this12.handleInput = _this12.handleInput.bind(_this12);
+			return _this12;
 		}
 	
 		_createClass(ShiftList, [{
@@ -316,8 +456,14 @@
 		}, {
 			key: 'render',
 			value: function render() {
+				var _this13 = this;
+	
 				var shifts = this.props.shifts.map(function (shift) {
-					return React.createElement(Shift, { key: shift._links.self.href, shift: shift });
+					return React.createElement(Shift, { key: shift.entity._links.self.href,
+						shift: shift,
+						attributes: _this13.props.attributes,
+						onUpdate: _this13.props.onUpdate,
+						onDelete: _this13.props.onDelete });
 				});
 	
 				var navLinks = [];
@@ -373,6 +519,7 @@
 									null,
 									'Shift Type'
 								),
+								React.createElement('th', null),
 								React.createElement('th', null)
 							),
 							shifts
@@ -390,16 +537,16 @@
 		return ShiftList;
 	}(React.Component);
 	
-	var Shift = function (_React$Component4) {
-		_inherits(Shift, _React$Component4);
+	var Shift = function (_React$Component5) {
+		_inherits(Shift, _React$Component5);
 	
 		function Shift(props) {
 			_classCallCheck(this, Shift);
 	
-			var _this9 = _possibleConstructorReturn(this, (Shift.__proto__ || Object.getPrototypeOf(Shift)).call(this, props));
+			var _this14 = _possibleConstructorReturn(this, (Shift.__proto__ || Object.getPrototypeOf(Shift)).call(this, props));
 	
-			_this9.handleDelete = _this9.handleDelete.bind(_this9);
-			return _this9;
+			_this14.handleDelete = _this14.handleDelete.bind(_this14);
+			return _this14;
 		}
 	
 		_createClass(Shift, [{
@@ -416,12 +563,19 @@
 					React.createElement(
 						'td',
 						null,
-						this.props.shift.date
+						this.props.shift.entity.date
 					),
 					React.createElement(
 						'td',
 						null,
-						this.props.shift.shiftType
+						this.props.shift.entity.shiftType
+					),
+					React.createElement(
+						'td',
+						null,
+						React.createElement(UpdateDialog, { shift: this.props.shift,
+							attributes: this.props.attributes,
+							onUpdate: this.props.onUpdate })
 					),
 					React.createElement(
 						'td',

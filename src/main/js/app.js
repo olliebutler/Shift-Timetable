@@ -2,6 +2,7 @@ const React = require('react');
 const ReactDOM = require('react-dom')
 const client = require('./client');
 const follow = require('./follow');
+const when = require('when');
 
 var root = '/api';
 
@@ -12,9 +13,11 @@ class App extends React.Component {
 		this.state = {shifts: [], attributes: [], pageSize: 2, links: {}};
 		this.updatePageSize = this.updatePageSize.bind(this);
 		this.onCreate = this.onCreate.bind(this);
+		this.onUpdate = this.onUpdate.bind(this);
 		this.onDelete = this.onDelete.bind(this);
 		this.onNavigate = this.onNavigate.bind(this);
 	}
+	
 	
 	loadFromServer(pageSize) {
 		follow(client, root, [
@@ -26,28 +29,39 @@ class App extends React.Component {
 				headers: {'Accept': 'application/schema+json'}
 			}).then(schema => {
 				this.schema = schema.entity;
+				this.links = shiftCollection.entity._links;
 				return shiftCollection;
 			});
-		}).done(shiftCollection => {
+		}).then(shiftCollection => {
+			return shiftCollection.entity._embedded.shifts.map(shift =>
+					client({
+						method: 'GET',
+						path: shift._links.self.href
+					})
+			);
+		}).then(shiftPromises => {
+			return when.all(shiftPromises);
+		}).done(shifts => {
 			this.setState({
-				shifts: shiftCollection.entity._embedded.shifts,
+				shifts: shifts,
 				attributes: Object.keys(this.schema.properties),
 				pageSize: pageSize,
-				links: shiftCollection.entity._links});
+				links: this.links
+			});
 		});
 	}
 	
 	onCreate(newShift) {
-		follow(client, root, ['shifts']).then(shiftCollection => {
+		var self = this;
+		follow(client, root, ['shifts']).then(response => {
 			return client({
 				method: 'POST',
-				path: shiftCollection.entity._links.self.href,
+				path: response.entity._links.self.href,
 				entity: newShift,
 				headers: {'Content-Type': 'application/json'}
 			})
 		}).then(response => {
-			return follow(client, root, [
-				{rel: 'shifts', params: {'size': this.state.pageSize}}]);
+			return follow(client, root, [{rel: 'shifts', params: {'size': self.state.pageSize}}]);
 		}).done(response => {
 			if (typeof response.entity._links.last != "undefined") {
 				this.onNavigate(response.entity._links.last.href);
@@ -57,19 +71,52 @@ class App extends React.Component {
 		});
 	}
 	
+	onUpdate(shift, updatedShift) {
+		client({
+			method: 'PUT',
+			path: shift.entity._links.self.href,
+			entity: updatedShift,
+			headers: {
+				'Content-Type': 'application/json',
+				'If-Match': shift.headers.Etag
+			}
+		}).done(response => {
+			this.loadFromServer(this.state.pageSize);
+		}, response => {
+			if (response.status.code === 412) {
+				alert('DENIED: Unable to update ' +
+					shift.entity._links.self.href + '. Your copy is stale.');
+			}
+		});
+	}
+	
 	onDelete(shift) {
-		client({method: 'DELETE', path: shift._links.self.href}).done(response => {
+		client({method: 'DELETE', path: shift.entity._links.self.href}).done(response => {
 			this.loadFromServer(this.state.pageSize);
 		});
 	}
 	
 	onNavigate(navUri) {
-		client({method: 'GET', path: navUri}).done(shiftCollection => {
+		client({
+			method: 'GET',
+			path: navUri
+		}).then(shiftCollection => {
+			this.links = shiftCollection.entity._links;
+
+			return shiftCollection.entity._embedded.shifts.map(shift =>
+					client({
+						method: 'GET',
+						path: shift._links.self.href
+					})
+			);
+		}).then(shiftPromises => {
+			return when.all(shiftPromises);
+		}).done(shifts => {
 			this.setState({
-				shifts: shiftCollection.entity._embedded.shifts,
-				attributes: this.state.attributes,
+				shifts: shifts,
+				attributes: Object.keys(this.schema.properties),
 				pageSize: this.state.pageSize,
-				links: shiftCollection.entity._links
+				links: this.links
 			});
 		});
 	}
@@ -91,7 +138,9 @@ class App extends React.Component {
 				<ShiftList shifts={this.state.shifts}
 							  links={this.state.links}
 							  pageSize={this.state.pageSize}
+							  attributes={this.state.attributes}
 							  onNavigate={this.onNavigate}
+							  onUpdate={this.onUpdate}
 							  onDelete={this.onDelete}
 							  updatePageSize={this.updatePageSize}/>
 			</div>
@@ -150,7 +199,56 @@ class CreateDialog extends React.Component {
 		)
 	}
 
-}
+};
+
+class UpdateDialog extends React.Component {
+
+	constructor(props) {
+		super(props);
+		this.handleSubmit = this.handleSubmit.bind(this);
+	}
+
+	handleSubmit(e) {
+		e.preventDefault();
+		var updatedShift = {};
+		this.props.attributes.forEach(attribute => {
+			updatedShift[attribute] = ReactDOM.findDOMNode(this.refs[attribute]).value.trim();
+		});
+		this.props.onUpdate(this.props.shift, updatedShift);
+		window.location = "#";
+	}
+
+	render() {
+		var inputs = this.props.attributes.map(attribute =>
+				<p key={this.props.shift.entity[attribute]}>
+					<input type="text" placeholder={attribute}
+						   defaultValue={this.props.shift.entity[attribute]}
+						   ref={attribute} className="field" />
+				</p>
+		);
+
+		var dialogId = "updateShift-" + this.props.shift.entity._links.self.href;
+
+		return (
+			<div key={this.props.shift.entity._links.self.href}>
+				<a href={"#" + dialogId}>Update</a>
+				<div id={dialogId} className="modalDialog">
+					<div>
+						<a href="#" title="Close" className="close">X</a>
+
+						<h2>Update a shift</h2>
+
+						<form>
+							{inputs}
+							<button onClick={this.handleSubmit}>Update</button>
+						</form>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+};
 
 class ShiftList extends React.Component{
 	
@@ -198,8 +296,12 @@ class ShiftList extends React.Component{
 	
 	render() {
 		var shifts = this.props.shifts.map(shift =>
-			<Shift key={shift._links.self.href} shift={shift}/>
-		);
+		<Shift key={shift.entity._links.self.href}
+				  shift={shift}
+				  attributes={this.props.attributes}
+				  onUpdate={this.props.onUpdate}
+				  onDelete={this.props.onDelete}/>
+);
 		
 		var navLinks = [];
 		if ("first" in this.props.links) {
@@ -223,7 +325,7 @@ class ShiftList extends React.Component{
 							<tr>
 								<th>Date</th>
 								<th>Shift Type</th>
-
+								<th></th>
 								<th></th>
 							</tr>
 							{shifts}
@@ -251,14 +353,19 @@ class Shift extends React.Component{
 	render() {
 		return (
 			<tr>
-				<td>{this.props.shift.date}</td>
-				<td>{this.props.shift.shiftType}</td>
+				<td>{this.props.shift.entity.date}</td>
+				<td>{this.props.shift.entity.shiftType}</td>
+				<td>
+				<UpdateDialog shift={this.props.shift}
+							  attributes={this.props.attributes}
+							  onUpdate={this.props.onUpdate}/>
+				</td>
 				<td>
 					<button onClick={this.handleDelete}>Delete</button>
 				</td>
 			</tr>
-		)
-	}
+	)
+}
 }
 
 ReactDOM.render(
