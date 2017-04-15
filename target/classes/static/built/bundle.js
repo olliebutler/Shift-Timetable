@@ -138,11 +138,14 @@
 					entity: updatedShift,
 					headers: {
 						'Content-Type': 'application/json',
-						'If-Match': employee.headers.Etag
+						'If-Match': shift.headers.Etag
 					}
 				}).done(function (response) {
 					/* Let the websocket handler update the state */
 				}, function (response) {
+					if (response.status.code === 403) {
+						alert('ACCESS DENIED: You are not authorized to update ' + shift.entity._links.self.href);
+					}
 					if (response.status.code === 412) {
 						alert('DENIED: Unable to update ' + shift.entity._links.self.href + '. Your copy is stale.');
 					}
@@ -151,7 +154,11 @@
 		}, {
 			key: 'onDelete',
 			value: function onDelete(shift) {
-				client({ method: 'DELETE', path: shift.entity._links.self.href });
+				client({ method: 'DELETE', path: shift.entity._links.self.href }).done(function (response) {/* let the websocket handle updating the UI */}, function (response) {
+					if (response.status.code === 403) {
+						alert('ACCESS DENIED: You are not authorized to delete ' + shift.entity._links.self.href);
+					}
+				});
 			}
 		}, {
 			key: 'onNavigate',
@@ -617,6 +624,11 @@
 						'td',
 						null,
 						this.props.shift.entity.shiftType
+					),
+					React.createElement(
+						'td',
+						null,
+						this.props.shift.entity.staff.name
 					),
 					React.createElement(
 						'td',

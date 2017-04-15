@@ -74,19 +74,31 @@ class App extends React.Component {
 			entity: updatedShift,
 			headers: {
 				'Content-Type': 'application/json',
-				'If-Match': employee.headers.Etag
+				'If-Match': shift.headers.Etag
 			}
 		}).done(response => {
 			/* Let the websocket handler update the state */
 		}, response => {
+			if (response.status.code === 403) {
+				alert('ACCESS DENIED: You are not authorized to update ' +
+					shift.entity._links.self.href);
+			}
 			if (response.status.code === 412) {
-				alert('DENIED: Unable to update ' + shift.entity._links.self.href + '. Your copy is stale.');
+				alert('DENIED: Unable to update ' + shift.entity._links.self.href +
+					'. Your copy is stale.');
 			}
 		});
 	}
 	
 	onDelete(shift) {
-		client({method: 'DELETE', path: shift.entity._links.self.href});
+		client({method: 'DELETE', path: shift.entity._links.self.href}
+		).done(response => {/* let the websocket handle updating the UI */},
+		response => {
+			if (response.status.code === 403) {
+				alert('ACCESS DENIED: You are not authorized to delete ' +
+					shift.entity._links.self.href);
+			}
+		});
 	}
 	
 	onNavigate(navUri) {
@@ -407,6 +419,7 @@ class Shift extends React.Component{
 			<tr>
 				<td>{this.props.shift.entity.date}</td>
 				<td>{this.props.shift.entity.shiftType}</td>
+				<td>{this.props.shift.entity.staff.name}</td>
 				<td>
 					<UpdateDialog shift={this.props.shift}
 								  attributes={this.props.attributes}
