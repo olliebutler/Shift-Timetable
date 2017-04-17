@@ -29,6 +29,6 @@ public class SpringDataRestEventHandler {
 			newStaff.setRoles(new String[]{"ROLE_MANAGER"});
 			staff = this.staffRepo.save(newStaff);
 		}
-		shift.setStaff(staff);
+		shift.setManager(staff);
 	}
 }

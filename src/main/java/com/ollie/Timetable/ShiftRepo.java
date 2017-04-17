@@ -12,15 +12,15 @@ public interface ShiftRepo extends PagingAndSortingRepository<Shift, Long> {
 	////////////////// start test
 	
 	@Override
-	@PreAuthorize("hasRole('ROLE_MANAGER') and #shift?.staff == null or #shift?.staff?.name == authentication?.name")
+	@PreAuthorize("hasRole('ROLE_MANAGER') and #shift?.manager == null or #shift?.manager?.name == authentication?.name")
 	Shift save(@Param("shift") Shift shift);
 
 	@Override
-	@PreAuthorize("hasRole('ROLE_MANAGER') and @shiftRepo.findOne(#id)?.staff?.name == authentication?.name")
+	@PreAuthorize("hasRole('ROLE_MANAGER') and @shiftRepo.findOne(#id)?.manager?.name == authentication?.name")
 	void delete(@Param("id") Long id);
 
 	@Override
-	@PreAuthorize("hasRole('ROLE_MANAGER') and #shift?.staff?.name == authentication?.name")
+	@PreAuthorize("hasRole('ROLE_MANAGER') and #shift?.manager?.name == authentication?.name")
 	void delete(@Param("shift") Shift shift);
 	
 	////////////////// end test

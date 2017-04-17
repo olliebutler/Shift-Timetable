@@ -398,7 +398,8 @@ class ShiftList extends React.Component{
 							<tr>
 								<th>Date</th>
 								<th>Shift Type</th>
-								<th></th>
+								<th>Staff Member</th>
+								<th>Manager</th>
 								<th></th>
 							</tr>
 							{shifts}
@@ -428,7 +429,8 @@ class Shift extends React.Component{
 			<tr>
 				<td>{this.props.shift.entity.date}</td>
 				<td>{this.props.shift.entity.shiftType}</td>
-				<td>{this.props.shift.entity.staff.name}</td>
+				<td>{this.props.shift.entity.staffMember}</td>
+				<td>{this.props.shift.entity.manager.name}</td>
 				<td>
 					<UpdateDialog shift={this.props.shift}
 								  attributes={this.props.attributes}

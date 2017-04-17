@@ -17,18 +17,20 @@ public class Shift {
 	private @Id @GeneratedValue Long id;
 	private String date;
 	private String shiftType;
+	private String staffMember;
 	
 	private @Version @JsonIgnore Long version;
 	
-	private @ManyToOne Staff staff;
+	private @ManyToOne Staff manager;
 	
 
 	private Shift() {}
 
-	public Shift(String date, String shiftType, Staff staff) {
+	public Shift(String date, String shiftType, String staffMember, Staff manager) {
 		this.date = date;
 		this.shiftType = shiftType;
-		this.staff = staff;
+		this.manager = manager;
+		this.staffMember = staffMember;
 	
 	}
 }

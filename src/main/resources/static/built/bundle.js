@@ -578,7 +578,16 @@
 									null,
 									'Shift Type'
 								),
-								React.createElement('th', null),
+								React.createElement(
+									'th',
+									null,
+									'Staff Member'
+								),
+								React.createElement(
+									'th',
+									null,
+									'Manager'
+								),
 								React.createElement('th', null)
 							),
 							shifts
@@ -632,7 +641,12 @@
 					React.createElement(
 						'td',
 						null,
-						this.props.shift.entity.staff.name
+						this.props.shift.entity.staffMember
+					),
+					React.createElement(
+						'td',
+						null,
+						this.props.shift.entity.manager.name
 					),
 					React.createElement(
 						'td',

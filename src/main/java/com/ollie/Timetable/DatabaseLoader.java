@@ -33,17 +33,12 @@ public class DatabaseLoader implements CommandLineRunner {
 			new UsernamePasswordAuthenticationToken("ollie", "doesn't matter",
 				AuthorityUtils.createAuthorityList("ROLE_MANAGER")));
 
-		this.shifts.save(new Shift("1/2/3", "Afternoon", ollie));
-		this.shifts.save(new Shift("2/2/3", "Afternoon", ollie));
-		this.shifts.save(new Shift("3/2/3", "Afternoon", ollie));
-
-		SecurityContextHolder.getContext().setAuthentication(
-			new UsernamePasswordAuthenticationToken("tom", "doesn't matter",
-				AuthorityUtils.createAuthorityList("ROLE_MANAGER")));
-
-		this.shifts.save(new Shift("1/2/3", "Evening", tom));
-		this.shifts.save(new Shift("2/2/3", "Evening", tom));
-		this.shifts.save(new Shift("3/2/3", "Evening", tom));
+		this.shifts.save(new Shift("1/2/3", "Afternoon", "ollie", ollie));
+		this.shifts.save(new Shift("2/2/3", "Afternoon","ollie", ollie));
+		this.shifts.save(new Shift("3/2/3", "Afternoon","ollie", ollie));
+		this.shifts.save(new Shift("1/2/3", "Evening", "tom",ollie));
+		this.shifts.save(new Shift("2/2/3", "Evening", "tom",ollie));
+		this.shifts.save(new Shift("3/2/3", "Evening", "tom",ollie));
 
 		SecurityContextHolder.clearContext();
 	}
