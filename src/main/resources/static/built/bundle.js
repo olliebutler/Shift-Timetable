@@ -22403,6 +22403,16 @@
 /* 182 */
 /***/ (function(module, exports, __webpack_require__) {
 
+	
+	/***************************************************************************************
+	*    Title: React.js and Spring Data REST
+	*    Author: Greg Turnquist
+	*    Date: 17/4/17
+	*    Code version: 1.4.2
+	*    Availability: https://github.com/spring-guides/tut-react-and-spring-data-rest/tree/master/security
+	*
+	***************************************************************************************/
+	
 	'use strict';
 	
 	var rest = __webpack_require__(183);
@@ -27319,6 +27329,15 @@
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
 	
+	/***************************************************************************************
+	*    Title: React.js and Spring Data REST
+	*    Author: Greg Turnquist
+	*    Date: 17/4/17
+	*    Code version: 1.4.2
+	*    Availability: https://github.com/spring-guides/tut-react-and-spring-data-rest/tree/master/security
+	*
+	***************************************************************************************/
+	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function (require) {
 		'use strict';
 	
@@ -27396,6 +27415,15 @@
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
 	
+	/***************************************************************************************
+	*    Title: React.js and Spring Data REST
+	*    Author: Greg Turnquist
+	*    Date: 17/4/17
+	*    Code version: 1.4.2
+	*    Availability: https://github.com/spring-guides/tut-react-and-spring-data-rest/tree/master/security
+	*
+	***************************************************************************************/
+	
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function () {
 		'use strict';
 	
@@ -27424,6 +27452,15 @@
 /***/ (function(module, exports) {
 
 	'use strict';
+	
+	/***************************************************************************************
+	*    Title: React.js and Spring Data REST
+	*    Author: Greg Turnquist
+	*    Date: 17/4/17
+	*    Code version: 1.4.2
+	*    Availability: https://github.com/spring-guides/tut-react-and-spring-data-rest/tree/master/security
+	*
+	***************************************************************************************/
 	
 	module.exports = function follow(api, rootPath, relArray) {
 		var root = api({
@@ -27471,6 +27508,15 @@
 /***/ (function(module, exports, __webpack_require__) {
 
 	'use strict';
+	
+	/***************************************************************************************
+	*    Title: React.js and Spring Data REST
+	*    Author: Greg Turnquist
+	*    Date: 17/4/17
+	*    Code version: 1.4.2
+	*    Availability: https://github.com/spring-guides/tut-react-and-spring-data-rest/tree/master/security
+	*
+	***************************************************************************************/
 	
 	var SockJS = __webpack_require__(232);1;
 	__webpack_require__(296);2;

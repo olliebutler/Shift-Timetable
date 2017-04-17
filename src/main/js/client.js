@@ -1,3 +1,13 @@
+
+/***************************************************************************************
+*    Title: React.js and Spring Data REST
+*    Author: Greg Turnquist
+*    Date: 17/4/17
+*    Code version: 1.4.2
+*    Availability: https://github.com/spring-guides/tut-react-and-spring-data-rest/tree/master/security
+*
+***************************************************************************************/
+
 'use strict';
 
 var rest = require('rest');
