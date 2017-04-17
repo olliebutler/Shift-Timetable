@@ -70,7 +70,7 @@
 	
 			var _this = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this, props));
 	
-			_this.state = { shifts: [], attributes: [], page: 1, pageSize: 2, links: {} };
+			_this.state = { shifts: [], attributes: [], page: 1, pageSize: 10, links: {} };
 			_this.updatePageSize = _this.updatePageSize.bind(_this);
 			_this.onCreate = _this.onCreate.bind(_this);
 			_this.onUpdate = _this.onUpdate.bind(_this);

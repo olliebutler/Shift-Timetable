@@ -43,11 +43,7 @@ public class EventHandler {
 				MESSAGE_PREFIX + "/updateShift", getPath(shift));
 	}
 
-	/**
-	 * Take an {@link Employee} and get the URI using Spring Data REST's {@link EntityLinks}.
-	 *
-	 * @param employee
-	 */
+
 	private String getPath(Shift shift) {
 		return this.entityLinks.linkForSingleResource(shift.getClass(),
 				shift.getId()).toUri().getPath();

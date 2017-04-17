@@ -14,8 +14,7 @@ public class DatabaseLoader implements CommandLineRunner {
 	private final StaffRepo staffs;
 
 	@Autowired
-	public DatabaseLoader(ShiftRepo shiftRepo,
-						  StaffRepo staffRepo) {
+	public DatabaseLoader(ShiftRepo shiftRepo, StaffRepo staffRepo) {
 
 		this.shifts = shiftRepo;
 		this.staffs =staffRepo;
@@ -24,10 +23,8 @@ public class DatabaseLoader implements CommandLineRunner {
 	@Override
 	public void run(String... strings) throws Exception {
 
-		Staff ollie = this.staffs.save(new Staff("ollie", "password",
-							"ROLE_MANAGER"));
-		Staff tom = this.staffs.save(new Staff("tom", "password",
-							"ROLE_STAFF"));
+		Staff ollie = this.staffs.save(new Staff("ollie", "password","ROLE_MANAGER"));
+		Staff tom = this.staffs.save(new Staff("tom", "password","ROLE_STAFF"));
 
 		SecurityContextHolder.getContext().setAuthentication(
 			new UsernamePasswordAuthenticationToken("ollie", "doesn't matter",
