@@ -27,7 +27,7 @@ public class DatabaseLoader implements CommandLineRunner {
 		Staff ollie = this.staffs.save(new Staff("ollie", "password",
 							"ROLE_MANAGER"));
 		Staff tom = this.staffs.save(new Staff("tom", "password",
-							"ROLE_MANAGER"));
+							"ROLE_STAFF"));
 
 		SecurityContextHolder.getContext().setAuthentication(
 			new UsernamePasswordAuthenticationToken("ollie", "doesn't matter",

@@ -30,6 +30,16 @@ class App extends React.Component {
 				path: shiftCollection.entity._links.profile.href,
 				headers: {'Accept': 'application/schema+json'}
 			}).then(schema => {
+				
+				Object.keys(schema.entity.properties).forEach(function (property) {
+					if (schema.entity.properties[property].hasOwnProperty('format') &&
+						schema.entity.properties[property].format === 'uri') {
+						delete schema.entity.properties[property];
+					}
+					else if (schema.entity.properties[property].hasOwnProperty('$ref')) {
+						delete schema.entity.properties[property];
+					}
+				});
 				this.schema = schema.entity;
 				this.links = shiftCollection.entity._links;
 				return shiftCollection;
@@ -77,7 +87,7 @@ class App extends React.Component {
 				'If-Match': shift.headers.Etag
 			}
 		}).done(response => {
-			/* Let the websocket handler update the state */
+			
 		}, response => {
 			if (response.status.code === 403) {
 				alert('ACCESS DENIED: You are not authorized to update ' +
@@ -220,12 +230,11 @@ class CreateDialog extends React.Component {
 		});
 		this.props.onCreate(newShift);
 
-		// clear out the dialog's inputs
+		
 		this.props.attributes.forEach(attribute => {
 			ReactDOM.findDOMNode(this.refs[attribute]).value = '';
 		});
 
-		// Navigate away from the dialog to hide it.
 		window.location = "#";
 	}
 

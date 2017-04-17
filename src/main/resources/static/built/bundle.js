@@ -92,6 +92,14 @@
 						path: shiftCollection.entity._links.profile.href,
 						headers: { 'Accept': 'application/schema+json' }
 					}).then(function (schema) {
+	
+						Object.keys(schema.entity.properties).forEach(function (property) {
+							if (schema.entity.properties[property].hasOwnProperty('format') && schema.entity.properties[property].format === 'uri') {
+								delete schema.entity.properties[property];
+							} else if (schema.entity.properties[property].hasOwnProperty('$ref')) {
+								delete schema.entity.properties[property];
+							}
+						});
 						_this2.schema = schema.entity;
 						_this2.links = shiftCollection.entity._links;
 						return shiftCollection;
@@ -140,9 +148,7 @@
 						'Content-Type': 'application/json',
 						'If-Match': shift.headers.Etag
 					}
-				}).done(function (response) {
-					/* Let the websocket handler update the state */
-				}, function (response) {
+				}).done(function (response) {}, function (response) {
 					if (response.status.code === 403) {
 						alert('ACCESS DENIED: You are not authorized to update ' + shift.entity._links.self.href);
 					}
@@ -300,12 +306,10 @@
 				});
 				this.props.onCreate(newShift);
 	
-				// clear out the dialog's inputs
 				this.props.attributes.forEach(function (attribute) {
 					ReactDOM.findDOMNode(_this7.refs[attribute]).value = '';
 				});
 	
-				// Navigate away from the dialog to hide it.
 				window.location = "#";
 			}
 		}, {
