@@ -27,7 +27,7 @@ public class DatabaseLoader implements CommandLineRunner {
 		Staff tom = this.staffs.save(new Staff("tom", "password","ROLE_STAFF"));
 
 		SecurityContextHolder.getContext().setAuthentication(
-			new UsernamePasswordAuthenticationToken("ollie", "doesn't matter",
+			new UsernamePasswordAuthenticationToken("ollie", "password",
 				AuthorityUtils.createAuthorityList("ROLE_MANAGER")));
 
 		this.shifts.save(new Shift("1/2/3", "Afternoon", "ollie", ollie));
